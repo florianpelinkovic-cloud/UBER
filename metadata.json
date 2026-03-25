@@ -1,5 +1,5 @@
 {
-  "name": "",
-  "description": "",
-  "requestFramePermissions": []
+  "name": "VTC Premium",
+  "description": "Une application de VTC minimaliste et élégante avec suivi en temps réel pour clients et chauffeurs.",
+  "requestFramePermissions": ["geolocation"]
 }
