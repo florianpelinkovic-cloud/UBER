@@ -170,7 +170,7 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
         <div className="flex justify-between items-start">
           <div className="bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 pointer-events-auto">
             <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">Mode Chauffeur</p>
-            <p className="text-sm font-medium text-white">{user.displayName}</p>
+            <p className="text-sm font-medium text-white">{user.displayName || 'Chauffeur'}</p>
           </div>
           <button
             onClick={toggleOnline}

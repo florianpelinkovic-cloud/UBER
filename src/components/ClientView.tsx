@@ -154,7 +154,7 @@ const ClientView: React.FC<ClientViewProps> = ({ user }) => {
         <div className="flex justify-between items-start">
           <div className="bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 pointer-events-auto">
             <p className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">VTC Premium</p>
-            <p className="text-sm font-medium text-white">Bonjour, {user.displayName.split(' ')[0]}</p>
+            <p className="text-sm font-medium text-white">Bonjour, {(user.displayName || 'Client').split(' ')[0]}</p>
           </div>
           <div className="bg-black/80 backdrop-blur-xl p-4 rounded-full border border-white/10 pointer-events-auto">
             <Navigation className="w-5 h-5 text-white" />

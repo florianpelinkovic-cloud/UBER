@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode, Component } from 'react';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -7,6 +7,7 @@ import Auth from './components/Auth';
 import ClientView from './components/ClientView';
 import DriverView from './components/DriverView';
 import { motion, AnimatePresence } from 'motion/react';
+import { X } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -15,6 +16,42 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: any;
+}
+
+class ErrorBoundary extends (Component as any) {
+  state: any = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+          <h1 className="text-2xl font-light text-white">Une erreur est survenue</h1>
+          <p className="text-neutral-500 text-sm max-w-md">
+            {this.state.error?.message || "L'application a rencontré un problème inattendu."}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-8 py-3 rounded-full bg-white text-black font-bold hover:bg-neutral-200 transition-all"
+          >
+            Recharger l'application
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 export default function App() {
@@ -68,32 +105,34 @@ export default function App() {
   }
 
   return (
-    <AnimatePresence mode="wait">
-      {!user ? (
-        <motion.div
-          key="auth"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="h-full"
-        >
-          <Auth onAuthSuccess={(profile) => setUser(profile)} />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="app"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="h-full"
-        >
-          {user.role === 'client' ? (
-            <ClientView user={user} />
-          ) : (
-            <DriverView user={user} />
-          )}
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <ErrorBoundary>
+      <AnimatePresence mode="wait">
+        {!user ? (
+          <motion.div
+            key="auth"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="h-full"
+          >
+            <Auth onAuthSuccess={(profile) => setUser(profile)} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="app"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="h-full"
+          >
+            {user.role === 'client' ? (
+              <ClientView user={user} />
+            ) : (
+              <DriverView user={user} />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </ErrorBoundary>
   );
 }

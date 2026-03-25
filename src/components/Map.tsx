@@ -25,7 +25,8 @@ const MapEvents: React.FC<{ center: { lat: number; lng: number }; onMapClick?: (
   const map = useMap();
   
   useEffect(() => {
-    map.setView([center.lat, center.lng], map.getZoom());
+    const zoom = map.getZoom() || 13;
+    map.setView([center.lat, center.lng], zoom);
   }, [center, map]);
 
   useEffect(() => {
