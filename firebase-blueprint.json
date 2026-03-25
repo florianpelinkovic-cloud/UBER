@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for both clients and drivers",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "format": "email", "description": "User's email" },
+        "photoURL": { "type": "string", "description": "User's profile photo URL" },
+        "role": { "type": "string", "enum": ["client", "driver"], "description": "User's role" },
+        "status": { "type": "string", "enum": ["online", "offline", "busy"], "description": "Driver availability status" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "heading": { "type": "number" }
+          },
+          "description": "Current GPS location"
+        },
+        "vehicle": {
+          "type": "object",
+          "properties": {
+            "model": { "type": "string" },
+            "plate": { "type": "string" },
+            "color": { "type": "string" }
+          },
+          "description": "Driver's vehicle information"
+        },
+        "rating": { "type": "number", "description": "Driver's average rating" }
+      },
+      "required": ["uid", "displayName", "email", "role"]
+    },
+    "Ride": {
+      "title": "Ride",
+      "description": "A ride request or ongoing trip",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Ride ID" },
+        "clientId": { "type": "string", "description": "UID of the client" },
+        "driverId": { "type": "string", "description": "UID of the driver (if assigned)" },
+        "status": { "type": "string", "enum": ["requested", "accepted", "arrived", "in_progress", "completed", "cancelled"], "description": "Current status of the ride" },
+        "pickup": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "address": { "type": "string" }
+          },
+          "description": "Pickup location"
+        },
+        "destination": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "address": { "type": "string" }
+          },
+          "description": "Destination location"
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Time the ride was requested" },
+        "acceptedAt": { "type": "string", "format": "date-time", "description": "Time the driver accepted" },
+        "completedAt": { "type": "string", "format": "date-time", "description": "Time the ride finished" },
+        "eta": { "type": "number", "description": "Estimated time of arrival in minutes" },
+        "distance": { "type": "number", "description": "Distance remaining in meters" }
+      },
+      "required": ["clientId", "status", "pickup", "destination", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and real-time status"
+    },
+    "/rides/{rideId}": {
+      "schema": "Ride",
+      "description": "Ride requests and active trips"
+    }
+  }
+}

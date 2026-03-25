@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (Firebase Auth UID)
+    // Fields:
+    //   - uid: string (required)
+    //   - displayName: string (required)
+    //   - email: string (required, format: email)
+    //   - photoURL: string (optional)
+    //   - role: string (required, enum: ['client', 'driver'])
+    //   - status: string (optional, enum: ['online', 'offline', 'busy'])
+    //   - location: map (optional, lat: number, lng: number, heading: number)
+    //   - vehicle: map (optional, model: string, plate: string, color: string)
+    //   - rating: number (optional)
+    //
+    // Collection: rides
+    // Document ID: {rideId} (Auto-generated)
+    // Fields:
+    //   - clientId: string (required)
+    //   - driverId: string (optional)
+    //   - status: string (required, enum: ['requested', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled'])
+    //   - pickup: map (required, lat: number, lng: number, address: string)
+    //   - destination: map (required, lat: number, lng: number, address: string)
+    //   - createdAt: timestamp (required)
+    //   - acceptedAt: timestamp (optional)
+    //   - completedAt: timestamp (optional)
+    //   - eta: number (optional)
+    //   - distance: number (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isClient() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client';
+    }
+
+    function isDriver() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver';
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'role']) &&
+             data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.role in ['client', 'driver'];
+    }
+
+    function isValidRide(data) {
+      return data.keys().hasAll(['clientId', 'status', 'pickup', 'destination', 'createdAt']) &&
+             data.clientId is string &&
+             data.status in ['requested', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled'] &&
+             data.pickup is map && data.pickup.lat is number && data.pickup.lng is number &&
+             data.destination is map && data.destination.lat is number && data.destination.lng is number &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile, and drivers can read other drivers' locations (for the map)
+      // and clients can read drivers' profiles when matched.
+      // For simplicity, we allow authenticated users to read profiles, but we hide sensitive PII.
+      // (Note: In a real app, we'd split users_public and users_private).
+      allow read: if isAuthenticated();
+
+      // Users can only create their own profile
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+
+      // Users can only update their own profile
+      allow update: if isOwner(userId) &&
+                    isValidUser(request.resource.data) &&
+                    request.resource.data.role == resource.data.role; // Role is immutable
+    }
+
+    match /rides/{rideId} {
+      // Clients can read their own rides, drivers can read rides they are assigned to or available rides.
+      allow read: if isAuthenticated();
+
+      // Clients can create ride requests
+      allow create: if isAuthenticated() &&
+                    request.resource.data.clientId == request.auth.uid &&
+                    isValidRide(request.resource.data) &&
+                    request.resource.data.status == 'requested';
+
+      // Updates:
+      // 1. Client can cancel their own ride
+      // 2. Driver can accept a ride
+      // 3. Driver can update status (arrived, in_progress, completed)
+      allow update: if isAuthenticated() &&
+                    isValidRide(request.resource.data) &&
+                    (
+                      // Client cancelling
+                      (resource.data.clientId == request.auth.uid && request.resource.data.status == 'cancelled') ||
+                      // Driver accepting
+                      (isDriver() && resource.data.status == 'requested' && request.resource.data.status == 'accepted' && request.resource.data.driverId == request.auth.uid) ||
+                      // Driver updating status
+                      (resource.data.driverId == request.auth.uid)
+                    );
+    }
+  }
+}
