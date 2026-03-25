@@ -1,32 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { UserProfile, Ride, Location, RideStatus } from '../types';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import Map from './Map';
 import { motion, AnimatePresence } from 'motion/react';
 import { Navigation, MapPin, Car, Star, X, CheckCircle2, Clock, Map as MapIcon } from 'lucide-react';
 
-interface ClientViewProps {
-  user: UserProfile;
-}
-
-const ClientView: React.FC<ClientViewProps> = ({ user }) => {
-  const [currentLocation, setCurrentLocation] = useState<Location>({ lat: 48.8566, lng: 2.3522 }); // Paris default
-  const [activeRide, setActiveRide] = useState<Ride | null>(null);
-  const [nearbyDrivers, setNearbyDrivers] = useState<UserProfile[]>([]);
-  const [destination, setDestination] = useState<Location | null>(null);
-  const [route, setRoute] = useState<{ lat: number; lng: number }[]>([]);
+const ClientView = ({ user }) => {
+  const [currentLocation, setCurrentLocation] = useState({ lat: 48.8566, lng: 2.3522 }); // Paris default
+  const [activeRide, setActiveRide] = useState(null);
+  const [nearbyDrivers, setNearbyDrivers] = useState([]);
+  const [route, setRoute] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Fetch route from OSRM (Free)
-  const fetchRoute = useCallback(async (start: Location, end: Location) => {
+  const fetchRoute = useCallback(async (start, end) => {
     try {
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
       );
       const data = await response.json();
       if (data.routes && data.routes.length > 0) {
-        const coordinates = data.routes[0].geometry.coordinates.map((coord: [number, number]) => ({
+        const coordinates = data.routes[0].geometry.coordinates.map((coord) => ({
           lat: coord[1],
           lng: coord[0]
         }));
@@ -71,7 +65,7 @@ const ClientView: React.FC<ClientViewProps> = ({ user }) => {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const drivers = snapshot.docs.map(doc => doc.data() as UserProfile);
+      const drivers = snapshot.docs.map(doc => doc.data());
       setNearbyDrivers(drivers);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
@@ -88,7 +82,7 @@ const ClientView: React.FC<ClientViewProps> = ({ user }) => {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        const rideData = snapshot.docs[0].data() as Ride;
+        const rideData = snapshot.docs[0].data();
         setActiveRide({ ...rideData, id: snapshot.docs[0].id });
       } else {
         setActiveRide(null);

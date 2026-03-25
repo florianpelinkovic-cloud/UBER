@@ -1,31 +1,24 @@
-import React, { useState, useEffect, ReactNode, Component } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { UserProfile } from './types';
 import Auth from './components/Auth';
 import ClientView from './components/ClientView';
 import DriverView from './components/DriverView';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
-interface ErrorBoundaryProps {
-  children: ReactNode;
-}
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
 
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: any;
-}
-
-class ErrorBoundary extends (Component as any) {
-  state: any = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error: any) {
+  static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: any, errorInfo: any) {
+  componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error", error, errorInfo);
   }
 
@@ -55,7 +48,7 @@ class ErrorBoundary extends (Component as any) {
 }
 
 export default function App() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -65,7 +58,7 @@ export default function App() {
         try {
           const userSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userSnap.exists()) {
-            setUser(userSnap.data() as UserProfile);
+            setUser(userSnap.data());
           } else {
             setUser(null);
           }

@@ -1,8 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Map as MapIcon, X } from 'lucide-react';
 
 // Fix Leaflet marker icons
 const DefaultIcon = L.icon({
@@ -13,15 +12,8 @@ const DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-interface MapProps {
-  center: { lat: number; lng: number };
-  markers?: { id: string; position: { lat: number; lng: number }; icon?: string; title?: string }[];
-  route?: { lat: number; lng: number }[];
-  onMapClick?: (e: L.LeafletMouseEvent) => void;
-}
-
 // Component to handle map centering and clicks
-const MapEvents: React.FC<{ center: { lat: number; lng: number }; onMapClick?: (e: L.LeafletMouseEvent) => void }> = ({ center, onMapClick }) => {
+const MapEvents = ({ center, onMapClick }) => {
   const map = useMap();
   
   useEffect(() => {
@@ -41,13 +33,12 @@ const MapEvents: React.FC<{ center: { lat: number; lng: number }; onMapClick?: (
   return null;
 };
 
-const Map: React.FC<MapProps> = ({ center, markers = [], route = [], onMapClick }) => {
+const Map = ({ center, markers = [], route = [], onMapClick }) => {
   // Use Mapify/Apify key if provided, otherwise fallback to standard OSM
-  // Assuming VITE_MAPIFY_API_KEY or VITE_APIFY_API_KEY
   const apiKey = import.meta.env.VITE_MAPIFY_API_KEY || import.meta.env.VITE_APIFY_API_KEY;
 
   // Custom marker icons for Driver/Client
-  const getIcon = (iconUrl?: string) => {
+  const getIcon = (iconUrl) => {
     if (!iconUrl) return DefaultIcon;
     return L.icon({
       iconUrl: iconUrl,

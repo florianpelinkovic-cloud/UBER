@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { UserProfile, Ride, Location } from '../types';
 import Map from './Map';
 import { motion, AnimatePresence } from 'motion/react';
-import { Navigation, MapPin, User, CheckCircle2, X, Power, ArrowRight, Play, Check, Map as MapIcon } from 'lucide-react';
+import { Navigation, MapPin, Power, ArrowRight, Play, Check, Map as MapIcon } from 'lucide-react';
 
-interface DriverViewProps {
-  user: UserProfile;
-}
-
-const DriverView: React.FC<DriverViewProps> = ({ user }) => {
-  const [currentLocation, setCurrentLocation] = useState<Location>({ lat: 48.8566, lng: 2.3522 });
+const DriverView = ({ user }) => {
+  const [currentLocation, setCurrentLocation] = useState({ lat: 48.8566, lng: 2.3522 });
   const [isOnline, setIsOnline] = useState(user.status === 'online');
-  const [activeRide, setActiveRide] = useState<Ride | null>(null);
-  const [incomingRides, setIncomingRides] = useState<Ride[]>([]);
-  const [clientProfile, setClientProfile] = useState<UserProfile | null>(null);
-  const [route, setRoute] = useState<{ lat: number; lng: number }[]>([]);
+  const [activeRide, setActiveRide] = useState(null);
+  const [incomingRides, setIncomingRides] = useState([]);
+  const [clientProfile, setClientProfile] = useState(null);
+  const [route, setRoute] = useState([]);
 
   // Fetch route from OSRM (Free)
-  const fetchRoute = React.useCallback(async (start: Location, end: Location) => {
+  const fetchRoute = React.useCallback(async (start, end) => {
     try {
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
       );
       const data = await response.json();
       if (data.routes && data.routes.length > 0) {
-        const coordinates = data.routes[0].geometry.coordinates.map((coord: [number, number]) => ({
+        const coordinates = data.routes[0].geometry.coordinates.map((coord) => ({
           lat: coord[1],
           lng: coord[0]
         }));
@@ -83,7 +78,7 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const rides = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Ride));
+      const rides = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setIncomingRides(rides);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'rides'));
 
@@ -100,14 +95,14 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       if (!snapshot.empty) {
-        const rideData = snapshot.docs[0].data() as Ride;
+        const rideData = snapshot.docs[0].data();
         const ride = { ...rideData, id: snapshot.docs[0].id };
         setActiveRide(ride);
 
         // Fetch client profile
         const clientSnap = await getDoc(doc(db, 'users', ride.clientId));
         if (clientSnap.exists()) {
-          setClientProfile(clientSnap.data() as UserProfile);
+          setClientProfile(clientSnap.data());
         }
       } else {
         setActiveRide(null);
@@ -128,7 +123,7 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
     }
   };
 
-  const acceptRide = async (rideId: string) => {
+  const acceptRide = async (rideId) => {
     try {
       await updateDoc(doc(db, 'rides', rideId), {
         driverId: user.uid,
@@ -141,7 +136,7 @@ const DriverView: React.FC<DriverViewProps> = ({ user }) => {
     }
   };
 
-  const updateRideStatus = async (status: Ride['status']) => {
+  const updateRideStatus = async (status) => {
     if (!activeRide) return;
     try {
       await updateDoc(doc(db, 'rides', activeRide.id), { status });

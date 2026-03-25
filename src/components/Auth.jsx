@@ -2,17 +2,12 @@ import React, { useState } from 'react';
 import { auth, googleProvider, db, handleFirestoreError, OperationType } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { UserRole, UserProfile } from '../types';
 import { motion } from 'motion/react';
 import { Car, User, LogIn } from 'lucide-react';
 
-interface AuthProps {
-  onAuthSuccess: (user: UserProfile) => void;
-}
-
-const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
+const Auth = ({ onAuthSuccess }) => {
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState(null);
 
   const handleLogin = async () => {
     if (!role) return;
@@ -24,9 +19,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        onAuthSuccess(userSnap.data() as UserProfile);
+        onAuthSuccess(userSnap.data());
       } else {
-        const newUser: UserProfile = {
+        const newUser = {
           uid: user.uid,
           displayName: user.displayName || 'Anonymous',
           email: user.email || '',
